@@ -11,23 +11,26 @@ local Cp = L.Cp
 
 L.locale(L)
 
+-- TODO: convert to grammar notation
 local closing_tag = P("</") * L.space^0 * Cg((P(1) - (P(">") + L.space))^0, "close") * L.space^0 * P(">")
-local opening_tag_open = (P("<") - closing_tag) * Cg((P(1) - (P(">") + P("/>") + L.space))^0, "open") * L.space^0
-local opening_tag_close = Cg((P(">") + P("/>")), "open_close")
+local opening_tag_open = ((P("<") * P("?")^-1) - closing_tag) *
+  Cg((P(1) - (P(">") + P("/>") + L.space))^0, "open") * L.space^0
+local opening_tag_close = Cg(P(">"), "open_close")
+local opening_tag_self_close = Cg((P("?>") + P("/>")) / function () return true end, "close")
 local text = Cg((P(1) - (opening_tag_open + closing_tag))^1, "text")
 local value = P("=") * ((Cg(P('"'), "quote") * Cg((P('\\"') + (P(1) - P('"')))^0, "value") * P('"')) +
                     (Cg(P("'"), "quote") * Cg((P("\\'") + (P(1) - P("'")))^0, "value") * P("'")))
 
 -- TODO: Attribute names are defined here as alnum/_/- but this is not accurate
 -- per the spec
-local attribute = Cg(Ct(Cg((L.alnum + S("_-"))^1, "name") * value^0^-1), "attribute") * L.space^0
+local attribute = Cg(Ct(Cg((L.alnum + S(":_-"))^1, "name") * value^0^-1), "attribute") * L.space^0
 
 -- Matches text, opening tags, or closing tags. If an open tag is matched, state
 -- moves to attributes
 local state_default = Ct((text + opening_tag_open + closing_tag) * Cg(Cp(), "position"))
 
 -- Matches attributes or tag close
-local state_attributes = Ct((attribute + opening_tag_close) * Cg(Cp(), "position"))
+local state_attributes = Ct((attribute + opening_tag_close + opening_tag_self_close) * Cg(Cp(), "position"))
 
 return function (text)
   local state = state_default
@@ -54,6 +57,9 @@ return function (text)
           m.attribute.value = m.attribute.value:gsub("\\" .. m.attribute.quote, m.attribute.quote)
         end
         m.attribute.quote = nil
+        return m
+      elseif m.close then
+        state = state_default
         return m
       else
         return m

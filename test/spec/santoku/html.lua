@@ -1,4 +1,5 @@
 local test = require("santoku.test")
+local it = require("santoku.iter")
 local serialize = require("santoku.serialize") -- luacheck: ignore
 
 local parsehtml = require("santoku.html")
@@ -30,3 +31,41 @@ test("html", function ()
   }, tokens))
 
 end)
+
+test("xml", function ()
+
+  local text = [[
+    <?xml abcd="efgh"?>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="text-indented"/>
+      </w:pPr>
+      <w:r>
+        <w:t xml:space="preserve">some text</w:t>
+      </w:r>
+    </w:p>
+  ]]
+
+  local tokens = collect(it.map(function (d)
+    return { open = d.open, close = d.close }
+  end, it.filter(function (d)
+    return d.open or d.close
+  end, parsehtml(text))))
+
+  assert(teq({
+    { ["open"] = "xml" },
+    { ["close"] = true },
+    { ["open"] = "w:p" },
+    { ["open"] = "w:pPr" },
+    { ["open"] = "w:pStyle" },
+    { ["close"] = true },
+    { ["close"] = "w:pPr" },
+    { ["open"] = "w:r" },
+    { ["open"] = "w:t" },
+    { ["close"] = "w:t" },
+    { ["close"] = "w:r" },
+    { ["close"] = "w:p" }
+  }, tokens))
+
+end)
+
