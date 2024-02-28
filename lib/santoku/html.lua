@@ -2,6 +2,8 @@
 -- TODO: Allow adding text in chunks (perhaps final generator value is the
 -- unprocessed text?)
 
+local err = require("santoku.error")
+local error = err.error
 local L = require("lpeg")
 
 L.locale(L)
@@ -12,11 +14,11 @@ local match = re.match
 
 local defs = {}
 defs.quoted = compile([[ (('"' {} ('\"' / [^"])* {} '"') / ("'" {} ("\'" / [^'])* {} "'")) {} ]], defs)
-defs.ident = compile([[ {} (!["'<>=]([%w]/[%p]))+ {} ]], defs)
+defs.ident = compile([[ {} (!["'/<>=]([%w]/[%p]))+ {} ]], defs)
 defs.closing = compile([[ {} -> "close" "</" %ident ">" {} ]], defs)
 defs.opening = compile([[ {} -> "open" !%closing "<" "?"? [%s]* %ident ]], defs)
 defs.opening_close = compile([[ {} -> "open_close" ">" {} ]], defs)
-defs.opening_close_self = compile([[ {} -> "close" "?>" / "/>" ]], defs)
+defs.opening_close_self = compile([[ {} -> "close_self" {} ("?>" / "/>") {} ]], defs)
 defs.text = compile([[ {} -> "text" {} (!%opening !%closing .)+ {} ]], defs)
 defs.attibute = compile([[ {} -> "attribute" [%s]* %ident ("=" %quoted)? ]], defs)
 
@@ -48,11 +50,15 @@ return function (text)
         state = state_default
         start = s1
         return m, text, s0, e0 - 1
+      elseif m == "close_self" then
+        state = state_default
+        start = e0
+        return "close"
       elseif m == "text" then
         start = f1 or e1 or e0
         return m, text, s0, e0 - 1
       else
-        error("unexpected state in html parser")
+        error("unexpected state in html parser", m)
       end
     end
   end

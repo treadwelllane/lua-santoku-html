@@ -63,7 +63,7 @@ test("xml", function ()
     { "text", text, 48, 56 },
     { "open", text, 58, 65 },
     { "attribute", text, 67, 71, 74, 86 },
-    { "attribute", text, 88, 88 },
+    { "close" },
     { "text", text, 90, 96 },
     { "close", text, 99, 103 },
     { "text", text, 105, 111 },
@@ -78,6 +78,17 @@ test("xml", function ()
     { "text", text, 180, 184 },
     { "close", text, 187, 189 },
     { "text", text, 191, 193 },
+  }, tokens))
+
+end)
+
+test("xml empty self-closing", function ()
+
+  local text = "<w:p/>"
+  local tokens = collect(map(pack, parsehtml(text)))
+  assert(teq({
+    { "open", text, 2, 4 },
+    { "close" },
   }, tokens))
 
 end)
