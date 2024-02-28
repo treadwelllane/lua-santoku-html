@@ -1,11 +1,14 @@
 local test = require("santoku.test")
-local it = require("santoku.iter")
 local serialize = require("santoku.serialize") -- luacheck: ignore
 
 local parsehtml = require("santoku.html")
 
-local iter = require("santoku.iter")
-local collect = iter.collect
+local it = require("santoku.iter")
+local collect = it.collect
+local map = it.map
+
+local arr = require("santoku.array")
+local pack = arr.pack
 
 local err = require("santoku.error")
 local assert = err.assert
@@ -18,16 +21,16 @@ test("html", function ()
 
   local text = "this is a test of <span class=\"thing\" id='\"hi\"' failme=\"test: \\\"blah\\\": it's bound to fail\">something</span>" -- luacheck: ignore
 
-  local tokens = collect(parsehtml(text))
+  local tokens = collect(map(pack, parsehtml(text)))
 
   assert(teq({
-    { start = 1,   position = 19,   text = "this is a test of " },
-    { start = 19,  position = 25,   open = "span" },
-    { start = 25,  position = 39,   attribute = { name = "class", value = "thing" } },
-    { start = 39,  position = 49,   attribute = { name = "id", value = "\"hi\"" } },
-    { start = 49,  position = 92,   attribute = { name = "failme", value = "test: \"blah\": it's bound to fail" } },
-    { start = 93,  position = 102,  text = "something" },
-    { start = 102, position = 109,  close = "span" },
+    { "text", text, 1, 18 },
+    { "open", text, 20, 23 },
+    { "attribute", text, 25, 29, 32, 36 },
+    { "attribute", text, 39, 40, 43, 46 },
+    { "attribute", text, 49, 54, 57, 90 },
+    { "text", text, 93, 101 },
+    { "close", text, 104, 107 }
   }, tokens))
 
 end)
@@ -46,26 +49,35 @@ test("xml", function ()
     </w:p>
   ]]
 
-  local tokens = collect(it.map(function (d)
-    return { open = d.open, close = d.close }
-  end, it.filter(function (d)
-    return d.open or d.close
-  end, parsehtml(text))))
+  local tokens = collect(map(pack, parsehtml(text)))
 
   assert(teq({
-    { ["open"] = "xml" },
-    { ["close"] = true },
-    { ["open"] = "w:p" },
-    { ["open"] = "w:pPr" },
-    { ["open"] = "w:pStyle" },
-    { ["close"] = true },
-    { ["close"] = "w:pPr" },
-    { ["open"] = "w:r" },
-    { ["open"] = "w:t" },
-    { ["close"] = "w:t" },
-    { ["close"] = "w:r" },
-    { ["close"] = "w:p" }
+    { "text", text, 1, 4 },
+    { "open", text, 7, 9 },
+    { "attribute", text, 11, 14, 17, 20 },
+    { "attribute", text, 22, 22 },
+    { "text", text, 24, 28 },
+    { "open", text, 30, 32 },
+    { "text", text, 34, 40 },
+    { "open", text, 42, 46 },
+    { "text", text, 48, 56 },
+    { "open", text, 58, 65 },
+    { "attribute", text, 67, 71, 74, 86 },
+    { "attribute", text, 88, 88 },
+    { "text", text, 90, 96 },
+    { "close", text, 99, 103 },
+    { "text", text, 105, 111 },
+    { "open", text, 113, 115 },
+    { "text", text, 117, 125 },
+    { "open", text, 127, 129 },
+    { "attribute", text, 131, 139, 142, 149 },
+    { "text", text, 152, 160 },
+    { "close", text, 163, 165 },
+    { "text", text, 167, 173 },
+    { "close", text, 176, 178 },
+    { "text", text, 180, 184 },
+    { "close", text, 187, 189 },
+    { "text", text, 191, 193 },
   }, tokens))
 
 end)
-

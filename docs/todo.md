@@ -1,9 +1,9 @@
 # Now
 
-- Return indices instead of chunks
+- Rename this to santoku-xmlish or something indicating that it's a very
+  permissive xml-like parser
 - Allow incrementally adding chunks (streamed input)
 
 # Consider
 
-- Rewrite in pure lua
 - Handle assert failure cases, etc

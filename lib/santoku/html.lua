@@ -3,34 +3,25 @@
 -- unprocessed text?)
 
 local L = require("lpeg")
-local P = L.P
-local S = L.S
-local Cg = L.Cg
-local Ct = L.Ct
-local Cp = L.Cp
 
 L.locale(L)
 
--- TODO: convert to grammar notation
-local closing_tag = P("</") * L.space^0 * Cg((P(1) - (P(">") + L.space))^0, "close") * L.space^0 * P(">")
-local opening_tag_open = ((P("<") * P("?")^-1) - closing_tag) *
-  Cg((P(1) - (P(">") + P("/>") + L.space))^0, "open") * L.space^0
-local opening_tag_close = Cg(P(">"), "open_close")
-local opening_tag_self_close = Cg((P("?>") + P("/>")) / function () return true end, "close")
-local text = Cg((P(1) - (opening_tag_open + closing_tag))^1, "text")
-local value = P("=") * ((Cg(P('"'), "quote") * Cg((P('\\"') + (P(1) - P('"')))^0, "value") * P('"')) +
-                    (Cg(P("'"), "quote") * Cg((P("\\'") + (P(1) - P("'")))^0, "value") * P("'")))
+local re = require("re")
+local compile = re.compile
+local match = re.match
 
--- TODO: Attribute names are defined here as alnum/_/- but this is not accurate
--- per the spec
-local attribute = Cg(Ct(Cg((L.alnum + S(":_-"))^1, "name") * value^0^-1), "attribute") * L.space^0
+local defs = {}
+defs.quoted = compile([[ (('"' {} ('\"' / [^"])* {} '"') / ("'" {} ("\'" / [^'])* {} "'")) {} ]], defs)
+defs.ident = compile([[ {} (!["'<>=]([%w]/[%p]))+ {} ]], defs)
+defs.closing = compile([[ {} -> "close" "</" %ident ">" {} ]], defs)
+defs.opening = compile([[ {} -> "open" !%closing "<" "?"? [%s]* %ident ]], defs)
+defs.opening_close = compile([[ {} -> "open_close" ">" {} ]], defs)
+defs.opening_close_self = compile([[ {} -> "close" "?>" / "/>" ]], defs)
+defs.text = compile([[ {} -> "text" {} (!%opening !%closing .)+ {} ]], defs)
+defs.attibute = compile([[ {} -> "attribute" [%s]* %ident ("=" %quoted)? ]], defs)
 
--- Matches text, opening tags, or closing tags. If an open tag is matched, state
--- moves to attributes
-local state_default = Ct((text + opening_tag_open + closing_tag) * Cg(Cp(), "position"))
-
--- Matches attributes or tag close
-local state_attributes = Ct((attribute + opening_tag_close + opening_tag_self_close) * Cg(Cp(), "position"))
+local state_default = defs.text + defs.opening + defs.closing
+local state_attributes = defs.attibute + defs.opening_close + defs.opening_close_self
 
 return function (text)
   local state = state_default
@@ -38,31 +29,30 @@ return function (text)
   local start = 1
   return function ()
     while start <= max do
-      local m = state:match(text, start)
+      local m, s0, e0, s1, e1, f1 = match(text, state, start)
       if not m then
         start = max + 1
         return
       end
-      m.start = start
-      start = m.position
-      if m.open then
+      if m == "open" then
         state = state_attributes
-        return m
-      elseif m.open_close then
+        start = e0
+        return m, text, s0, e0 - 1
+      elseif m == "open_close" then
         state = state_default
-      elseif m.attribute then
-        -- TODO: Ugly hack.
-        -- How can we just modify the capture so that \\" becomes "?
-        if m.attribute.value and m.attribute.quote then
-          m.attribute.value = m.attribute.value:gsub("\\" .. m.attribute.quote, m.attribute.quote)
-        end
-        m.attribute.quote = nil
-        return m
-      elseif m.close then
+        start = s0
+      elseif m == "attribute" then
+        start = f1 or e1 or e0
+        return m, text, s0, e0 - 1, s1, e1 and e1 - 1 or nil
+      elseif m == "close" then
         state = state_default
-        return m
+        start = s1
+        return m, text, s0, e0 - 1
+      elseif m == "text" then
+        start = f1 or e1 or e0
+        return m, text, s0, e0 - 1
       else
-        return m
+        error("unexpected state in html parser")
       end
     end
   end
