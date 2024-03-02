@@ -1,14 +1,14 @@
 local env = {
 
   name = "santoku-html",
-  version = "0.0.8-1",
+  version = "0.0.9-1",
   variable_prefix = "TK_HTML",
   license = "MIT",
   public = true,
 
   dependencies = {
     "lua >= 5.1",
-    "santoku >= 0.0.199-1",
+    "santoku >= 0.0.200-1",
     "lpeg >= 1.1.0-1",
   },
 

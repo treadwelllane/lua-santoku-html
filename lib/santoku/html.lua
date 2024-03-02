@@ -4,6 +4,7 @@
 
 local err = require("santoku.error")
 local error = err.error
+
 local L = require("lpeg")
 
 L.locale(L)
@@ -16,13 +17,14 @@ local defs = {}
 defs.quoted = compile([[ (('"' {} ('\"' / [^"])* {} '"') / ("'" {} ("\'" / [^'])* {} "'")) {} ]], defs)
 defs.ident = compile([[ {} (!["'/<>=]([%w]/[%p]))+ {} ]], defs)
 defs.closing = compile([[ {} -> "close" "</" %ident ">" {} ]], defs)
-defs.opening = compile([[ {} -> "open" !%closing "<" "?"? [%s]* %ident ]], defs)
+defs.comment = compile([[ {} -> "comment" "<!--" {} (!"-->" .)+ {} "-->" {} ]], defs)
+defs.opening = compile([[ {} -> "open" !%comment !%closing "<" "?"? [%s]* %ident ]], defs)
 defs.opening_close = compile([[ {} -> "open_close" ">" {} ]], defs)
 defs.opening_close_self = compile([[ {} -> "close_self" {} ("?>" / "/>") {} ]], defs)
 defs.text = compile([[ {} -> "text" {} (!%opening !%closing .)+ {} ]], defs)
 defs.attibute = compile([[ {} -> "attribute" [%s]* %ident ("=" %quoted)? ]], defs)
 
-local state_default = defs.text + defs.opening + defs.closing
+local state_default = defs.comment + defs.text + defs.opening + defs.closing
 local state_attributes = defs.attibute + defs.opening_close + defs.opening_close_self
 
 return function (text)
@@ -57,8 +59,11 @@ return function (text)
       elseif m == "text" then
         start = f1 or e1 or e0
         return m, text, s0, e0 - 1
+      elseif m == "comment" then
+        start = s1
+        return "comment", text, s0, e0 -1
       else
-        error("unexpected state in html parser", m)
+        error("unexpected parsing state", m, s0, s1, e0, e1, f1)
       end
     end
   end

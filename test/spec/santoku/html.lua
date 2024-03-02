@@ -92,3 +92,15 @@ test("xml empty self-closing", function ()
   }, tokens))
 
 end)
+
+test("xml comments", function ()
+
+  local text = "<span><!-- testing --></span>"
+  local tokens = collect(map(pack, parsehtml(text)))
+  assert(teq({
+    { "open", text, 2, 5 },
+    { "comment", text, 11, 19 },
+    { "close", text, 25, 28 },
+  }, tokens))
+
+end)
