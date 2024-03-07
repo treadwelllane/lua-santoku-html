@@ -18,7 +18,7 @@ defs.quoted = compile([[ (('"' {} ('\"' / [^"])* {} '"') / ("'" {} ("\'" / [^'])
 defs.ident = compile([[ {} (!["'/<>=]([%w]/[%p]))+ {} ]], defs)
 defs.closing = compile([[ {} -> "close" "</" %ident ">" {} ]], defs)
 defs.comment = compile([[ {} -> "comment" "<!--" {} (!"-->" .)+ {} "-->" {} ]], defs)
-defs.doctype = compile([[ {} -> "doctype" !%comment "<!" {} (!">" .)+ {} ">" {} ]], defs)
+defs.doctype = compile([[ {} -> "doctype" !%comment "<!" {} (%quoted -> 0 / (!">" .))+ {} ">" {} ]], defs)
 defs.opening = compile([[ {} -> "open" !%comment !%closing !%doctype "<" "?"? [%s]* %ident ]], defs)
 defs.opening_close = compile([[ {} -> "open_close" ">" {} ]], defs)
 defs.opening_close_self = compile([[ {} -> "close_self" {} ("?>" / "/>") {} ]], defs)
@@ -65,7 +65,7 @@ return function (text)
         return "comment", text, s0, e0 -1
       elseif m == "doctype" then
         start = s1
-        return "doctype", text, s0, e0
+        return "doctype", text, s0, e0 - 1
       else
         error("unexpected parsing state", m, s0, s1, e0, e1, f1)
       end

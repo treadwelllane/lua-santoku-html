@@ -106,13 +106,25 @@ test("xml comments", function ()
 end)
 
 test("doctype", function ()
-  local text = [[<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><span a="b">test</span>]] -- luacheck: ignore
+  local text = [[<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict."   ><span a="b">test</span>]] -- luacheck: ignore
   local tokens = collect(map(pack, parsehtml(text)))
   assert(teq({
-    { "doctype", text, 3, 109 },
+    { "doctype", text, 3, 108 },
     { "open", text, 111, 114 },
     { "attribute", text, 116, 116, 119, 119 },
     { "text", text, 122, 125 },
     { "close", text, 128, 131 }
+  }, tokens))
+end)
+
+test("doctype with quoted closer", function ()
+  local text = [[<!DOCTYPE html ">" ><span a="b">test</span>]] -- luacheck: ignore
+  local tokens = collect(map(pack, parsehtml(text)))
+  assert(teq({
+    { "doctype", text, 3, 19 },
+    { "open", text, 22, 25 },
+    { "attribute", text, 27, 27, 30, 30 },
+    { "text", text, 33, 36 },
+    { "close", text, 39, 42 }
   }, tokens))
 end)
