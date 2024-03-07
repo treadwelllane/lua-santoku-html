@@ -104,3 +104,15 @@ test("xml comments", function ()
   }, tokens))
 
 end)
+
+test("doctype", function ()
+  local text = [[<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><span a="b">test</span>]] -- luacheck: ignore
+  local tokens = collect(map(pack, parsehtml(text)))
+  assert(teq({
+    { "doctype", text, 3, 109 },
+    { "open", text, 111, 114 },
+    { "attribute", text, 116, 116, 119, 119 },
+    { "text", text, 122, 125 },
+    { "close", text, 128, 131 }
+  }, tokens))
+end)
