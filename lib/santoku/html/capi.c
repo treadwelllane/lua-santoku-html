@@ -52,9 +52,11 @@ static int parse (lua_State *L) {
   lua_setmetatable(L, -2);
   s->L = L;
   if (is_html) {
-    s->reader = xmlReaderWalker(htmlReadDoc((const xmlChar *) data + sidx, NULL, encoding, HTML_PARSE_NONET | HTML_PARSE_NOIMPLIED | HTML_PARSE_RECOVER | HTML_PARSE_NOERROR));
+    s->reader = xmlReaderWalker(htmlReadDoc((const xmlChar *) data + sidx, NULL, encoding,
+      HTML_PARSE_NONET | HTML_PARSE_NOIMPLIED | HTML_PARSE_NOERROR | HTML_PARSE_RECOVER ));
   } else {
-    s->reader = xmlReaderForMemory(data + sidx, datalen - sidx, NULL, NULL, XML_PARSE_NONET | XML_PARSE_NOENT | XML_PARSE_NOERROR | XML_PARSE_RECOVER);
+    s->reader = xmlReaderForMemory(data + sidx, datalen - sidx, NULL, NULL,
+      XML_PARSE_NONET | XML_PARSE_NSCLEAN | XML_PARSE_NOERROR | XML_PARSE_RECOVER);
   }
   s->in_attrs = false;
   s->empty = false;

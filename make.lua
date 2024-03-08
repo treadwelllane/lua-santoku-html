@@ -1,7 +1,7 @@
 local env = {
 
   name = "santoku-html",
-  version = "0.0.12-1",
+  version = "0.0.13-1",
   variable_prefix = "TK_HTML",
   license = "MIT",
   public = true,
