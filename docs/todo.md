@@ -1,9 +1,8 @@
 # Now
 
-- Consider using fastxml or similar c lib instead of lpeg
-- Rename this to santoku-xmlish or something indicating that it's a very
-  permissive xml-like parser
+- Rename this to santoku-xmlish or something
 - Allow incrementally adding chunks (streamed input)
+- Allow returning indices instead of extracted bits of text
 
 # Consider
 
