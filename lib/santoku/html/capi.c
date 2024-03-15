@@ -14,6 +14,7 @@ typedef struct {
   lua_State *L;
   char *buf;
   xmlTextReaderPtr reader;
+  xmlDocPtr doc;
   bool in_attrs;
   xmlNodePtr node;
   xmlAttr *attr;
@@ -52,9 +53,11 @@ static int parse (lua_State *L) {
   lua_setmetatable(L, -2);
   s->L = L;
   if (is_html) {
-    s->reader = xmlReaderWalker(htmlReadDoc((const xmlChar *) data + sidx, NULL, encoding,
-      HTML_PARSE_NONET | HTML_PARSE_NOIMPLIED | HTML_PARSE_NOERROR | HTML_PARSE_RECOVER ));
+    s->doc = htmlReadDoc((const xmlChar *) data + sidx, NULL, encoding,
+      HTML_PARSE_NONET | HTML_PARSE_NOIMPLIED | HTML_PARSE_NOERROR | HTML_PARSE_RECOVER);
+    s->reader = xmlReaderWalker(s->doc);
   } else {
+    s->doc = NULL;
     s->reader = xmlReaderForMemory(data + sidx, datalen - sidx, NULL, NULL,
       XML_PARSE_NONET | XML_PARSE_NSCLEAN | XML_PARSE_NOERROR | XML_PARSE_RECOVER);
   }
@@ -142,6 +145,9 @@ static int destroy (lua_State *L)
   state_t *s = peek(L, 1);
   if (s && s->reader)
     xmlFreeTextReader(s->reader);
+  if (s && s->doc)
+    xmlFreeDoc(s->doc);
+  s->doc = NULL;
   s->reader = NULL;
   return 0;
 }
