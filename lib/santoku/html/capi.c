@@ -48,22 +48,24 @@ static int parse (lua_State *L) {
   bool is_html = lua_toboolean(L, 3);
   const char *encoding = luaL_optstring(L, 4, "utf-8");
   state_t *s = (state_t *) lua_newuserdata(L, sizeof(state_t));
-  if (!s) return luaL_error(L, "error in malloc for xml parser");
+  if (!s) return luaL_error(L, "memory error create xml userdata");
   luaL_getmetatable(L, MT);
   lua_setmetatable(L, -2);
   s->L = L;
   if (is_html) {
     s->doc = htmlReadDoc((const xmlChar *) data + sidx, NULL, encoding,
       HTML_PARSE_NONET | HTML_PARSE_NOIMPLIED | HTML_PARSE_NOERROR | HTML_PARSE_RECOVER);
+    if (!s->doc) return luaL_error(L, "error opening html doc");
     s->reader = xmlReaderWalker(s->doc);
+    if (!s->reader) return luaL_error(L, "error opening html reader");
   } else {
     s->doc = NULL;
     s->reader = xmlReaderForMemory(data + sidx, datalen - sidx, NULL, NULL,
       XML_PARSE_NONET | XML_PARSE_NSCLEAN | XML_PARSE_NOERROR | XML_PARSE_RECOVER);
+    if (!s->reader) return luaL_error(L, "error opening xml reader");
   }
   s->in_attrs = false;
   s->empty = false;
-  if (!s->reader) return luaL_error(L, "error in malloc for xml parser");
   return 1;
 }
 
