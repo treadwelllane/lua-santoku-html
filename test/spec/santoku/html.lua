@@ -6,6 +6,7 @@ local parsehtml = require("santoku.html")
 local it = require("santoku.iter")
 local collect = it.collect
 local map = it.map
+local take = it.take
 
 local arr = require("santoku.array")
 local pack = arr.pack
@@ -15,7 +16,6 @@ local assert = err.assert
 
 local tbl = require("santoku.table")
 local teq = tbl.equals
-
 
 test("simple", function ()
 
@@ -129,5 +129,16 @@ test("doctype with quoted closer", function ()
     { "attribute", "a", "b" },
     { "text", "test" },
     { "close", "span" }
+  }, tokens))
+end)
+
+test("ampersand", function ()
+  local text = [[<p>&</p>]]
+  local tokens = collect(take(10, map(pack, parsehtml(text, true))))
+  print(serialize(tokens))
+  assert(teq({
+    { "open", "p" },
+    { "text", "&" },
+    { "close", "p" }
   }, tokens))
 end)

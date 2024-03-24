@@ -61,7 +61,7 @@ static int parse (lua_State *L) {
   } else {
     s->doc = NULL;
     s->reader = xmlReaderForMemory(data + sidx, datalen - sidx, NULL, NULL,
-      XML_PARSE_NONET | XML_PARSE_NSCLEAN | XML_PARSE_NOERROR | XML_PARSE_RECOVER);
+      XML_PARSE_NOENT | XML_PARSE_NONET | XML_PARSE_NSCLEAN | XML_PARSE_NOERROR | XML_PARSE_RECOVER);
     if (!s->reader) return luaL_error(L, "error opening xml reader");
   }
   s->in_attrs = false;
