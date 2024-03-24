@@ -135,7 +135,6 @@ end)
 test("ampersand", function ()
   local text = [[<p>&</p>]]
   local tokens = collect(take(10, map(pack, parsehtml(text, true))))
-  print(serialize(tokens))
   assert(teq({
     { "open", "p" },
     { "text", "&" },
