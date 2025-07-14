@@ -54,7 +54,7 @@ static int parse (lua_State *L) {
   s->L = L;
   if (is_html) {
     s->doc = htmlReadDoc((const xmlChar *) data + sidx, NULL, encoding,
-      HTML_PARSE_NONET | HTML_PARSE_NOIMPLIED | HTML_PARSE_NOERROR | HTML_PARSE_RECOVER);
+      HTML_PARSE_NONET | HTML_PARSE_NOERROR | HTML_PARSE_RECOVER);
     if (!s->doc) return luaL_error(L, "error opening html doc");
     s->reader = xmlReaderWalker(s->doc);
     if (!s->reader) return luaL_error(L, "error opening html reader");
