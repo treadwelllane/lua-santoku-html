@@ -19,6 +19,9 @@ typedef struct {
   xmlNodePtr node;
   xmlAttr *attr;
   bool empty;
+  bool pending_p_open;
+  bool pending_p_close;
+  bool in_p;
 } state_t;
 
 // TODO: Duplicated across various libraries, need to consolidate
@@ -66,6 +69,9 @@ static int parse (lua_State *L) {
   }
   s->in_attrs = false;
   s->empty = false;
+  s->pending_p_open = false;
+  s->pending_p_close = false;
+  s->in_p = false;
   return 1;
 }
 
@@ -74,6 +80,20 @@ static int step (lua_State *L)
   lua_settop(L, 1);
   state_t *s = peek(L, 1);
   while (true) {
+    if (s->pending_p_close) {
+      s->pending_p_close = false;
+      s->in_p = false;
+      lua_pushstring(L, "close");
+      lua_pushstring(L, "p");
+      return 2;
+    }
+    if (s->pending_p_open) {
+      s->pending_p_open = false;
+      s->in_p = true;
+      lua_pushstring(L, "open");
+      lua_pushstring(L, "p");
+      return 2;
+    }
     if (s->in_attrs) {
       if (!s->attr || !s->attr->name) {
         s->in_attrs = false;
@@ -117,8 +137,12 @@ static int step (lua_State *L)
           xmlFree(v);
           return 2;
         case XML_READER_TYPE_ELEMENT:
-          lua_pushstring(L, "open");
           xmlChar *n = xmlTextReaderName(s->reader);
+          if (s->doc && (!strcmp((char *)n, "html") || !strcmp((char *)n, "head") || !strcmp((char *)n, "body"))) {
+            xmlFree(n);
+            continue;
+          }
+          lua_pushstring(L, "open");
           lua_pushstring(L, (char *)n);
           xmlFree(n);
           s->empty = xmlTextReaderIsEmptyElement(s->reader);
@@ -127,8 +151,12 @@ static int step (lua_State *L)
           s->in_attrs = s->attr != NULL;
           return 2;
         case XML_READER_TYPE_END_ELEMENT:
-          lua_pushstring(L, "close");
           n = xmlTextReaderName(s->reader);
+          if (s->doc && (!strcmp((char *)n, "html") || !strcmp((char *)n, "head") || !strcmp((char *)n, "body"))) {
+            xmlFree(n);
+            continue;
+          }
+          lua_pushstring(L, "close");
           lua_pushstring(L, (char *)n);
           xmlFree(n);
           return 2;
